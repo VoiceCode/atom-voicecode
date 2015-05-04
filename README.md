@@ -22,7 +22,7 @@ atom.commands.dispatch(atom.views.getView(atom.workspace), 'voicecode:connect')
 
 If you want to manually connected rather than have it auto-connect, just click the menu item: `Packages > VoiceCode > Connect`
 
-### Adding your own commands
+## Adding your own commands
 
 
 If you want to add new commands that are not already included in this passage, just do the following in your Atom user init file:
@@ -37,7 +37,7 @@ window.voiceCodeCommands =
 
 Then, in your VoiceCode user commands, you can call this Atom command as follows:
 
-```
+```coffeescript
 "commandName":
     kind: "action"
     description: "does something cool, and has an override for Atom IDE"
