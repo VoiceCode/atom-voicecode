@@ -1,0 +1,16 @@
+{
+  "name": "voicecode",
+  "main": "./lib/voicecode",
+  "version": "1.0.0",
+  "description": "VoiceCode.io integration for Atom: control Atom with voice commands / voice control",
+  "activationCommands": {
+    "atom-workspace": "voicecode:connect"
+  },
+  "repository": "https://github.com/atom/voicecode",
+  "license": "MIT",
+  "engines": {
+    "atom": ">=0.174.0 <2.0.0"
+  },
+  "dependencies": {
+  }
+}
