@@ -1,6 +1,6 @@
-# VoiceCode package
+# VoiceCode / Atom Integration Package
 
-This package integrates VoiceCode (voicecode.io) with Atom.
+This package integrates VoiceCode (voicecode.io) with Atom (atom.io).
 
 This integration is needed because many VoiceCode voice commands are more sophisticated than simply pressing keys. For example, a command like "select next word".
 
@@ -14,7 +14,7 @@ The integration is handled via unix sockets for communicating between Atom and V
 
 To automatically connect Atom to VoiceCode on startup, in your Atom user init file, add the following:
 
-```
+```coffeescript
 atom.commands.dispatch(atom.views.getView(atom.workspace), 'voicecode:connect')
 ```
 
@@ -27,7 +27,7 @@ If you want to manually connected rather than have it auto-connect, just click t
 
 If you want to add new commands that are not already included in this passage, just do the following in your Atom user init file:
 
-```
+```coffeescript
 window.voiceCodeCommands =
   myCoolCommand: (options) ->
     # do something here
