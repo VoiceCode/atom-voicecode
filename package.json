@@ -6,7 +6,7 @@
   "activationCommands": {
     "atom-workspace": "voicecode:connect"
   },
-  "repository": "https://github.com/atom/voicecode",
+  "repository": "https://github.com/VoiceCode/atom-voicecode.git",
   "license": "MIT",
   "engines": {
     "atom": ">=0.174.0 <2.0.0"
