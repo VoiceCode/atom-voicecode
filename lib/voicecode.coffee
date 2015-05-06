@@ -48,13 +48,25 @@ module.exports = Voicecode =
       window.voiceCodeCommands?[command](options)
     else
       atom.notifications.addError("the command: '#{command}' was not found. Try updating the Atom voicecode package.")
+  _editor: ->
+    editor = atom.workspaceView.getActiveView()?.editor
+  _afterRange: (selection, editor) ->
+    [@_pointAfter(selection.getBufferRange().end), editor.getEofBufferPosition()]
+  _beforeRange: (selection) ->
+    [0, @_pointBefore(selection.getBufferRange().start)]
+  _pointAfter: (pt) ->
+    new Point(pt.row, pt.column + 1)
+  _pointBefore: (pt) ->
+    new Point(pt.row, pt.column)
+  _searchEscape: (expression) ->
+    expression.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&")
 
   selectNextWord: (distance) ->
     console.log "select next word"
-    editor = atom.workspaceView.getActiveView()?.editor
+    editor = @_editor()
     return unless editor
     for selection in editor.getSelections()
-      range = [@_pointAfter(editor, selection.getBufferRange().end), editor.getEofBufferPosition()]
+      range = @_afterRange(selection, editor)
       editor.scanInBufferRange /[\w]+/, range, (result) ->
         if result.match
           selection.setBufferRange([result.range.start, result.range.end])
@@ -63,18 +75,52 @@ module.exports = Voicecode =
 
   selectPreviousWord: (distance) ->
     console.log "select previous word"
-    editor = atom.workspaceView.getActiveView()?.editor
+    editor = @_editor()
     return unless editor
     for selection in editor.getSelections()
-      range = [0, @_pointBefore(editor, selection.getBufferRange().start)]
+      range = @_beforeRange(selection)
       editor.backwardsScanInBufferRange /[\w]+/, range, (result) ->
         if result.match
           selection.setBufferRange([result.range.start, result.range.end])
         result.stop()
     editor.mergeCursors() # undocumented
 
-  _pointAfter: (editor, pt) ->
-    new Point(pt.row, pt.column + 1)
+  ###
+  options.value => search term
+  options.distance => preferred match index
+  ###
+  selectNextOccurrence: (options) ->
+    console.log "select next occurrence"
+    editor = @_editor()
+    return unless editor
+    found = null
+    for selection, index in editor.getSelections()
+      range = @_afterRange(selection, editor)
+      editor.scanInBufferRange new RegExp(@_searchEscape(options.value), "i"), range, (result) ->
+        if result.match
+          found = result
+          if index is (options.distance - 1)
+            result.stop()
+      if found?
+        selection.setBufferRange([found.range.start, found.range.end])
+    editor.mergeCursors() # undocumented
 
-  _pointBefore: (editor, pt) ->
-    new Point(pt.row, pt.column)
+  ###
+  options.value => search term
+  options.distance => preferred match index
+  ###
+  selectPreviousOccurrence: (options) ->
+    console.log "select previous occurrence"
+    editor = @_editor()
+    return unless editor
+    found = null
+    for selection, index in editor.getSelections()
+      range = @_beforeRange(selection)
+      editor.backwardsScanInBufferRange new RegExp(@_searchEscape(options.value), "i"), range, (result) ->
+        if result.match
+          found = result
+          if index is (options.distance - 1)
+            result.stop()
+      if found?
+        selection.setBufferRange([found.range.start, found.range.end])
+    editor.mergeCursors() # undocumented
