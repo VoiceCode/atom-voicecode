@@ -61,28 +61,71 @@ module.exports = Voicecode =
   _searchEscape: (expression) ->
     expression.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&")
 
+  goToLine: (line) ->
+    position = new Point(line - 1, 0)
+    editor = @_editor()
+    editor.scrollToBufferPosition(position)
+    editor.setCursorBufferPosition(position)
+    editor.moveToFirstCharacterOfLine()
+
+  selectLineRange: (options) ->
+    from = new Point(options.from - 1, 0)
+    to = new Point(options.to - 1, 0)
+    editor = @_editor()
+    return unless editor
+    editor.setSelectedBufferRange([from, to])
+
+  extendSelectionToLine: (line) ->
+    line = line - 1
+    editor = @_editor()
+    return unless editor
+    current = editor.getSelection().getBufferRange()
+    range = if line < current.start.row
+      [new Point(line, 0), current.end]
+    else if line > current.end.row
+      [current.start, new Point(line + 1, 0)]
+    else if line is current.start.row or line is current.end.row
+      # nothing
+    else
+      topHeight = line - current.start.row
+      bottomHeight = current.end.row - line
+      if topHeight > bottomHeight
+        [new Point(line, 0), current.end]
+      else
+        [current.start, new Point(line + 1, 0)]
+    if range?
+      editor.setSelectedBufferRange(range)
+
   selectNextWord: (distance) ->
-    console.log "select next word"
     editor = @_editor()
     return unless editor
     for selection in editor.getSelections()
+      index = 0
+      found = null
       range = @_afterRange(selection, editor)
-      editor.scanInBufferRange /[\w]+/, range, (result) ->
+      editor.scanInBufferRange /[\w]+/g, range, (result) ->
         if result.match
-          selection.setBufferRange([result.range.start, result.range.end])
-        result.stop()
+          found = result
+          if index++ is (distance - 1)
+            result.stop()
+      if found?
+        selection.setBufferRange([found.range.start, found.range.end])
     editor.mergeCursors() # undocumented
 
   selectPreviousWord: (distance) ->
-    console.log "select previous word"
     editor = @_editor()
     return unless editor
     for selection in editor.getSelections()
+      index = 0
+      found = null
       range = @_beforeRange(selection)
-      editor.backwardsScanInBufferRange /[\w]+/, range, (result) ->
+      editor.backwardsScanInBufferRange /[\w]+/g, range, (result) ->
         if result.match
-          selection.setBufferRange([result.range.start, result.range.end])
-        result.stop()
+          found = result
+          if index++ is (distance - 1)
+            result.stop()
+      if found?
+        selection.setBufferRange([found.range.start, found.range.end])
     editor.mergeCursors() # undocumented
 
   ###
@@ -90,16 +133,16 @@ module.exports = Voicecode =
   options.distance => preferred match index
   ###
   selectNextOccurrence: (options) ->
-    console.log "select next occurrence"
     editor = @_editor()
     return unless editor
     found = null
-    for selection, index in editor.getSelections()
+    for selection in editor.getSelections()
+      index = 0
       range = @_afterRange(selection, editor)
-      editor.scanInBufferRange new RegExp(@_searchEscape(options.value), "i"), range, (result) ->
+      editor.scanInBufferRange new RegExp(@_searchEscape(options.value), "ig"), range, (result) ->
         if result.match
           found = result
-          if index is (options.distance - 1)
+          if index++ is (options.distance - 1)
             result.stop()
       if found?
         selection.setBufferRange([found.range.start, found.range.end])
@@ -110,17 +153,56 @@ module.exports = Voicecode =
   options.distance => preferred match index
   ###
   selectPreviousOccurrence: (options) ->
-    console.log "select previous occurrence"
     editor = @_editor()
     return unless editor
-    found = null
-    for selection, index in editor.getSelections()
+    for selection in editor.getSelections()
+      found = null
+      index = 0
       range = @_beforeRange(selection)
-      editor.backwardsScanInBufferRange new RegExp(@_searchEscape(options.value), "i"), range, (result) ->
+      editor.backwardsScanInBufferRange new RegExp(@_searchEscape(options.value), "ig"), range, (result) ->
         if result.match
           found = result
-          if index is (options.distance - 1)
+          if index++ is (options.distance - 1)
             result.stop()
       if found?
         selection.setBufferRange([found.range.start, found.range.end])
     editor.mergeCursors() # undocumented
+
+  ###
+  options.value => search term
+  options.distance => preferred match index
+  ###
+  selectToNextOccurrence: (options) ->
+    editor = @_editor()
+    return unless editor
+    for selection, index in editor.getSelections()
+      found = null
+      index = 0
+      range = @_afterRange(selection, editor)
+      editor.scanInBufferRange new RegExp(@_searchEscape(options.value), "ig"), range, (result) ->
+        console.log result: result
+        if result.match
+          found = result
+          if index++ is (options.distance - 1)
+            result.stop()
+      if found?
+        selection.setBufferRange([selection.getBufferRange().start, found.range.end])
+
+  ###
+  options.value => search term
+  options.distance => preferred match index
+  ###
+  selectToPreviousOccurrence: (options) ->
+    editor = @_editor()
+    return unless editor
+    for selection in editor.getSelections()
+      found = null
+      index = 0
+      range = @_beforeRange(selection, editor)
+      editor.backwardsScanInBufferRange new RegExp(@_searchEscape(options.value), "ig"), range, (result) ->
+        if result.match
+          found = result
+          if index++ is (options.distance - 1)
+            result.stop()
+      if found?
+        selection.setBufferRange([found.range.start, selection.getBufferRange().end])
