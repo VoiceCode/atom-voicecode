@@ -37,7 +37,7 @@ window.voiceCodeCommands =
 Then, in your VoiceCode user commands, you can call this Atom command as follows:
 
 ```coffeescript
-@runAtomCommand "myCoolCommand", options: someObjectOrValue
+@runAtomCommand "myCoolCommand", someObjectOrValue
 ```
 
 And for a more concrete example, it may look like this in VoiceCode:
@@ -53,7 +53,8 @@ And for a more concrete example, it may look like this in VoiceCode:
           @exec "subl --command 'select_next_word'"
         when "Atom"
           @runAtomCommand "myCoolCommand",
-            options: {distance: input, value: "something"}
+            distance: input
+            value: "something"
         else
           # do some default action
 ```
