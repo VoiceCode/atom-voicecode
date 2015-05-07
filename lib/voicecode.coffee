@@ -4,9 +4,9 @@ socketPath = "/tmp/voicecode-atom.sock"
 
 {View, EditorView, $, Point} = require 'atom'
 
-module.exports = Voicecode =
-  voicecodeView: null
-  modalPanel: null
+Transformer = require './transformer'
+
+Voicecode =
   subscriptions: null
 
   activate: (state) ->
@@ -14,7 +14,6 @@ module.exports = Voicecode =
     atom.commands.add 'atom-workspace', 'voicecode:select-next-word': => @selectNextWord()
 
   deactivate: ->
-
   serialize: ->
 
   connect: ->
@@ -49,7 +48,7 @@ module.exports = Voicecode =
     else
       atom.notifications.addError("the command: '#{command}' was not found. Try updating the Atom voicecode package.")
   _editor: ->
-    editor = atom.workspaceView.getActiveView()?.editor
+    atom.workspaceView.getActiveView()?.editor
   _afterRange: (selection, editor) ->
     [@_pointAfter(selection.getBufferRange().end), editor.getEofBufferPosition()]
   _beforeRange: (selection) ->
@@ -206,3 +205,17 @@ module.exports = Voicecode =
             result.stop()
       if found?
         selection.setBufferRange([found.range.start, selection.getBufferRange().end])
+
+  # case transforms
+
+  transformSelectedText: (transform) ->
+    transformer = new Transformer()
+    editor = @_editor()
+    return unless editor
+    editor.mutateSelectedText (selection) ->
+      text = selection.getText()
+      transformed = transformer[transform](text)
+      selection.delete()
+      selection.insertText(transformed)
+
+module.exports = Voicecode
