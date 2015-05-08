@@ -24,7 +24,7 @@ If you want to manually connect it rather than have it auto-connect, just click 
 
 ## Adding your own commands
 
-If you want to add new commands that are not already included in this passage, just do the following in your Atom user init file:
+If you want to add new commands that are not already included in this package, just do the following in your Atom user init file:
 
 ```coffeescript
 window.voiceCodeCommands =
