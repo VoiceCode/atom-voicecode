@@ -28,6 +28,9 @@ Voicecode =
 
       unixServer.listen socketPath
 
+  trigger: (command) ->
+    atom.views.getView(atom.workspace).dispatchEvent(new CustomEvent(command, {bubbles: true, cancelable: true}))
+
   commandRecieved: (data) ->
     body = data.toString('utf8')
     console.log body: body
