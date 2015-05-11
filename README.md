@@ -58,3 +58,11 @@ And for a more concrete example, it may look like this in VoiceCode:
         else
           # do some default action
 ```
+
+### Triggering existing Atom commands
+
+In VoiceCode simply do:
+
+```coffeescript
+@runAtomCommand "trigger", "tree-view:add-file"
+```
