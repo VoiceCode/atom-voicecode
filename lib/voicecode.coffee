@@ -57,7 +57,7 @@ Voicecode =
   _beforeRange: (selection) ->
     [0, @_pointBefore(selection.getBufferRange().start)]
   _pointAfter: (pt) ->
-    new Point(pt.row, pt.column + 1)
+    new Point(pt.row, pt.column)
   _pointBefore: (pt) ->
     new Point(pt.row, pt.column)
   _searchEscape: (expression) ->
