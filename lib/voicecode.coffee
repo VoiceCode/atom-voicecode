@@ -53,13 +53,13 @@ Voicecode =
   _editor: ->
     atom.workspaceView.getActiveView()?.editor
   _afterRange: (selection, editor) ->
-    [@_pointAfter(selection.getBufferRange().end), editor.getEofBufferPosition()]
+    [selection.getBufferRange().end, editor.getEofBufferPosition()]
   _beforeRange: (selection) ->
-    [0, @_pointBefore(selection.getBufferRange().start)]
+    [0, selection.getBufferRange().start]
   _pointAfter: (pt) ->
-    new Point(pt.row, pt.column)
+    new Point(pt.row, pt.column + 1)
   _pointBefore: (pt) ->
-    new Point(pt.row, pt.column)
+    new Point(pt.row, pt.column - 1)
   _searchEscape: (expression) ->
     expression.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&")
 
@@ -208,6 +208,42 @@ Voicecode =
             result.stop()
       if found?
         selection.setBufferRange([found.range.start, selection.getBufferRange().end])
+
+  selectSurroundedOccurrence: (options) ->
+    expression = options.expression
+    return unless expression.length
+    direction = options.direction
+    distance = (options.distance or 1) - 1
+
+    first = expression[0]
+    last = expression[expression.length - 1]
+    find = new RegExp("(^|\\W)#{first}[\\w]+#{last}($|\\W)", "ig")
+    editor = @_editor()
+    return unless editor
+    console.log
+      first: first
+      last: last
+      find: find
+
+    for selection in editor.getSelections()
+      found = null
+      index = 0
+      if direction is 1
+        range = @_afterRange(selection, editor)
+        editor.scanInBufferRange find, range, (result) ->
+          if result.match
+            found = result
+            if index++ is (options.distance - 1)
+              result.stop()
+      else
+        range = @_beforeRange(selection)
+        editor.backwardsScanInBufferRange find, range, (result) ->
+          if result.match
+            found = result
+            if index++ is (options.distance - 1)
+              result.stop()
+      if found?
+        selection.setBufferRange([@_pointAfter(found.range.start), @_pointBefore(found.range.end)])
 
   # case transforms
 
