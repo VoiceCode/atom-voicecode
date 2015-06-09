@@ -2,7 +2,9 @@ net = require("net")
 fs = require("fs")
 socketPath = "/tmp/voicecode-atom.sock"
 
-{View, EditorView, $, Point} = require 'atom'
+{Point} = require 'atom'
+{View, TextEditorView} = require 'atom-space-pen-views'
+$ = require 'jquery'
 
 Transformer = require './transformer'
 
