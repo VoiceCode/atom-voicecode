@@ -2,7 +2,9 @@ net = require("net")
 fs = require("fs")
 socketPath = "/tmp/voicecode-atom.sock"
 
-{View, EditorView, $, Point} = require 'atom'
+{Point} = require 'atom'
+{View, TextEditorView} = require 'atom-space-pen-views'
+$ = require 'jquery'
 
 Transformer = require './transformer'
 
@@ -51,7 +53,7 @@ Voicecode =
     else
       atom.notifications.addError("the command: '#{command}' was not found. Try updating the Atom voicecode package.")
   _editor: ->
-    atom.workspaceView.getActiveView()?.editor
+    atom.workspace.getActiveTextEditor()
   _afterRange: (selection, editor) ->
     [selection.getBufferRange().end, editor.getEofBufferPosition()]
   _beforeRange: (selection) ->
@@ -81,7 +83,7 @@ Voicecode =
     line = line - 1
     editor = @_editor()
     return unless editor
-    current = editor.getSelection().getBufferRange()
+    current = editor.getSelections()[0].getBufferRange()
     range = if line < current.start.row
       [new Point(line, 0), current.end]
     else if line > current.end.row
