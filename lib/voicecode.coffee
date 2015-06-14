@@ -82,6 +82,8 @@ Voicecode =
   extendSelectionToLine: (line) ->
     line = line - 1
     editor = @_editor()
+
+    hey
     return unless editor
     current = editor.getSelections()[0].getBufferRange()
     range = if line < current.start.row
@@ -258,5 +260,12 @@ Voicecode =
       transformed = transformer[transform](text)
       selection.delete()
       selection.insertText(transformed)
+
+  insertContentFromLine: (line) ->
+    editor = @_editor()
+    return unless editor
+    return unless line
+    content = editor.getBuffer().lines[line - 1]?.trim()
+    editor.insertText(content)
 
 module.exports = Voicecode
