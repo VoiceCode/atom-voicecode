@@ -82,8 +82,6 @@ Voicecode =
   extendSelectionToLine: (line) ->
     line = line - 1
     editor = @_editor()
-
-    hey
     return unless editor
     current = editor.getSelections()[0].getBufferRange()
     range = if line < current.start.row
