@@ -15,6 +15,9 @@ Voicecode =
     atom.commands.add 'atom-workspace', 'voicecode:connect': => @connect()
     atom.commands.add 'atom-workspace', 'voicecode:select-next-word': => @selectNextWord()
 
+    @connect()
+    window.addEventListener('focus', @connect.bind(@), true)
+
   deactivate: ->
   serialize: ->
 
@@ -45,7 +48,6 @@ Voicecode =
       parsed: parsed
       command: command
       options: options
-
     if @[command]?
       @[command](options)
     else if window.voiceCodeCommands?[command]
