@@ -76,7 +76,7 @@ Voicecode =
 
   selectLineRange: (options) ->
     from = new Point(options.from - 1, 0)
-    to = new Point(options.to - 1, 0)
+    to = new Point(options.to, 0)
     editor = @_editor()
     return unless editor
     editor.setSelectedBufferRange([from, to])
