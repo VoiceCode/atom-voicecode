@@ -142,6 +142,9 @@ Voicecode =
     editor = @_editor()
     return unless editor
     found = null
+    if options.value is null
+      options.value = editor.selections[0].getText()
+      return if options.value is ''
     for selection in editor.getSelections()
       index = 0
       range = @_afterRange(selection, editor)
@@ -161,8 +164,11 @@ Voicecode =
   selectPreviousOccurrence: (options) ->
     editor = @_editor()
     return unless editor
+    found = null
+    if options.value is null
+      options.value = editor.selections[0].getText()
+      return if options.value is ''
     for selection in editor.getSelections()
-      found = null
       index = 0
       range = @_beforeRange(selection)
       editor.backwardsScanInBufferRange new RegExp(@_searchEscape(options.value), "ig"), range, (result) ->
