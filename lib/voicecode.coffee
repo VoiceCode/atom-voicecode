@@ -27,11 +27,13 @@ Voicecode =
       if !err
         fs.unlinkSync socketPath
 
-      unixServer = net.createServer (localSerialConnection) =>
-        localSerialConnection.on 'data', (data) =>
-          @commandRecieved(data)
-
-      unixServer.listen socketPath
+      try
+        unixServer = net.createServer (localSerialConnection) =>
+          localSerialConnection.on 'data', (data) =>
+            @commandRecieved(data)
+        unixServer.listen socketPath
+      catch error
+        console.log error
 
   trigger: (command) ->
     atom.views.getView(atom.workspace).dispatchEvent(new CustomEvent(command, {bubbles: true, cancelable: true}))
