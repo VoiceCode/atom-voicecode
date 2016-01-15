@@ -20,16 +20,16 @@ class Voicecode
       reconnect: true
     @remote.expose 'injectCode', @injectCode.bind @
 
-    @subscriptions.push app.on 'browser-window-blur',
-    (e, window) =>
-      @updateAppState
-        window:
-          focused: false
-    @subscriptions.push app.on 'browser-window-focus',
-    (e, window) =>
-      @updateAppState
-        window:
-          focused: true
+    # @subscriptions.push app.on 'browser-window-blur',
+    # (e, window) =>
+    #   @updateAppState
+    #     window:
+    #       focused: false
+    # @subscriptions.push app.on 'browser-window-focus',
+    # (e, window) =>
+    #   @updateAppState
+    #     window:
+    #       focused: true
 
     @subscriptions.push atom.workspace.observeTextEditors _.once (editor) =>
       originalFocused = $('atom-text-editor')[0].constructor::focused
