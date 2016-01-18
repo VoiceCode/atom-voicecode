@@ -27,7 +27,7 @@ class Voicecode
     @editors = {} # TODO: cleanup dead editors
 
   activate: (state) ->
-    @window = remote.getCurrentWindow()
+    # @window = remote.getCurrentWindow()
     @remote = new rpc
       host: 'localhost'
       port: 7777
