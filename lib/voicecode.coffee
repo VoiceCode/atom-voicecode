@@ -2,8 +2,8 @@ ws = require 'ws'
 vm = require 'vm'
 rpc = require 'atomic_rpc'
 {TextEditor} = require 'atom'
-# remote = require('remote')
-# app = remote.require 'app'
+remote = require('remote')
+app = remote.require 'app'
 _ = require 'lodash'
 $ = require 'jquery'
 
@@ -27,7 +27,8 @@ class Voicecode
     @editors = {} # TODO: cleanup dead editors
 
   activate: (state) ->
-    # @window = remote.getCurrentWindow()
+    @myWindowId = remote.getCurrentWindow().id
+    @subscribeToWindowFocus()
     @remote = new rpc
       host: 'localhost'
       port: 7777
@@ -42,6 +43,19 @@ class Voicecode
         focused: editor.focused
         mini: editor.mini
 
+  subscribeToWindowFocus: ->
+    # @subscriptions.push app.on 'browser-window-blur',
+    # (e, window) =>
+    #   console.log e
+    #   @updateAppState
+    #     window:
+    #       focused: false
+    @subscriptions.push app.on 'browser-window-focus',
+    (e, window) =>
+      if window.id is @myWindowId
+        editor = _.findWhere @editors, {focused: true }
+        if editor?
+          @updateEditorState editor
   updateAppState: (state) ->
     @remote.call
       method: 'updateAppState'
