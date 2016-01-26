@@ -1,10 +1,8 @@
 # VoiceCode / Atom Integration Package
 
-This package integrates VoiceCode http://voicecode.io with Atom http://atom.io
+This is an Atom package/plugin that lets VoiceCode http://voicecode.io control Atom http://atom.io
 
-This integration is needed because many VoiceCode voice commands are more sophisticated than simply pressing keys. For example, a command like "select next curly brace".
-
-The integration is handled via unix sockets for communicating between Atom and VoiceCode.
+This integration is needed because many VoiceCode voice commands are more sophisticated than simply pressing keys or clicking the mouse. For example, a command that *selects the next curly brace*, or a command that *extends the current selection(s) forward until the next comma*, etc.
 
 ## Setup
 
