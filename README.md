@@ -64,3 +64,7 @@ In VoiceCode simply do:
 ```coffeescript
 @runAtomCommand "trigger", "tree-view:add-file"
 ```
+
+## Contributing
+
+If you would like to make custom changes or contribute to this package, general development instructions are here: https://github.com/atom/atom/blob/master/docs/contributing-to-packages.md
