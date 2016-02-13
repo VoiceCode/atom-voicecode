@@ -68,3 +68,10 @@ In VoiceCode simply do:
 ## Contributing
 
 If you would like to make custom changes or contribute to this package, general development instructions are here: https://github.com/atom/atom/blob/master/docs/contributing-to-packages.md
+
+## Installing a non-master branch of this plug-in for development or testing
+
+- In Atom, go to preferences/packages and uninstall the VoiceCode package
+- `git clone` the branch or version of this repository you want to use
+- from the root of the the cloned repository, run `apm link`
+- restart Atom
