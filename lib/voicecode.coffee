@@ -47,7 +47,7 @@ class Voicecode
 
   activate: (state) ->
     @remote.on 'connect', ->
-      document.querySelector('atom-text-editor.is-focused').dispatchEvent new Event 'focus'
+      document.querySelector('atom-text-editor.is-focused')?.dispatchEvent new Event 'focus'
     @remote.initialize()
 
   updateEditorState: (editor) ->
