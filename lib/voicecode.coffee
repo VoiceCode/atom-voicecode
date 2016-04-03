@@ -5,28 +5,13 @@ rpc = require 'atomic_rpc'
 remote = require('remote')
 app = remote.require 'app'
 _ = require 'lodash'
-$ = require 'jquery'
+{$} = require 'atom-space-pen-views'
+
 
 class Voicecode
   constructor: ->
-    element = document.createElement 'atom-text-editor'
-    originalFocused = element.constructor::focused
-    originalBlurred = element.constructor::blurred
-    __this = @
-    handler = (focusEvent, original, focus) ->
-      @model.focused = focus
-      __this.updateEditorState @model
-      original.apply @, focusEvent
-
-    element.constructor::blurred = (focusEvent) ->
-      handler.call @, focusEvent, originalBlurred, false
-    element.constructor::focused = (focusEvent) ->
-      handler.call @, focusEvent, originalFocused, true
-
     @subscriptions = []
     @editors = {} # TODO: cleanup dead editors
-
-  activate: (state) ->
     @myWindowId = remote.getCurrentWindow().id
     @subscribeToWindowFocus()
     @remote = new rpc
@@ -35,12 +20,44 @@ class Voicecode
       reconnect: true
     @remote.expose 'injectCode', @injectCode.bind @
 
+    element = document.createElement 'atom-text-editor'
+    originalFocused = element.constructor::focused
+    originalBlurred = element.constructor::blurred
+    __this = @
+    handler = (focusEvent, original, focus) ->
+      @model.focused = focus
+      __this.updateEditorState @model
+      original.apply @, focusEvent
+    ourBlurred = (focusEvent) ->
+      handler.call @, focusEvent, originalBlurred, false
+    ourFocused = (focusEvent) ->
+      handler.call @, focusEvent, originalFocused, true
+    element.constructor::blurred = ourBlurred
+    element.constructor::focused = ourFocused
+
+    # bind our proxied blur/focus event to existing editors
+    editors = atom.workspace.getTextEditors()
+    _.every editors, (editor) ->
+      element = atom.views.getView editor
+      element.removeEventListener 'blur', originalBlurred
+      element.removeEventListener 'focused', originalFocused
+      element.addEventListener 'blur', element.constructor::blurred
+      element.addEventListener 'focus', element.constructor::focused
+      true
+
+  activate: (state) ->
+    @remote.on 'connect', ->
+      document.querySelector('atom-text-editor.is-focused').dispatchEvent new Event 'focus'
+    @remote.initialize()
+
   updateEditorState: (editor) ->
     @editors[editor.id] = editor
     @updateAppState
+      # name: 'Atom'
+      # bundleId: 'com.github.atom'
       editor:
         id: editor.id
-        focused: editor.focused
+        focused: (editor.focused and remote.getCurrentWindow().isFocused())
         mini: editor.mini
 
   subscribeToWindowFocus: ->
@@ -78,6 +95,8 @@ class Voicecode
       vm.runInContext code, sandbox
     catch err
       console.error err
+      atom.notifications.addError('VoiceCode: Remote Commands Failed',
+      {detail: err, dismissible: true, icon: 'bug'})
 
   currentEditor: ->
     _.findWhere @editors, {focused: true}
