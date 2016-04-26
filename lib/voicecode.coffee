@@ -7,7 +7,6 @@ app = remote.require 'app'
 _ = require 'lodash'
 {$} = require 'atom-space-pen-views'
 
-
 class Voicecode
   constructor: ->
     @subscriptions = []
@@ -46,7 +45,7 @@ class Voicecode
       true
 
   activate: (state) ->
-    @remote.on 'connect', ->
+    @remote.on 'connect', (socket) ->
       document.querySelector('atom-text-editor.is-focused')?.dispatchEvent new Event 'focus'
     @remote.initialize()
 
@@ -70,7 +69,7 @@ class Voicecode
     @subscriptions.push app.on 'browser-window-focus',
     (e, window) =>
       if window.id is @myWindowId
-        editor = _.findWhere @editors, {focused: true }
+        editor = _.find @editors, {focused: true }
         if editor?
           @updateEditorState editor
   updateAppState: (state) ->
@@ -99,6 +98,6 @@ class Voicecode
       {detail: err, dismissible: true, icon: 'bug'})
 
   currentEditor: ->
-    _.findWhere @editors, {focused: true}
+    _.find @editors, {focused: true}
 
 module.exports = window.voicecode = new Voicecode
