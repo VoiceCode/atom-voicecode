@@ -10,7 +10,8 @@ _ = require 'lodash'
 class Voicecode
   constructor: ->
     @subscriptions = []
-    @editors = {} # TODO: cleanup dead editors
+    @editors = {}
+    @startMaintenance()
     @myWindowId = remote.getCurrentWindow().id
     @subscribeToWindowFocus()
     @remote = new rpc
@@ -58,6 +59,7 @@ class Voicecode
         id: editor.id
         focused: (editor.focused and remote.getCurrentWindow().isFocused())
         mini: editor.mini
+        scopes: editor.getRootScopeDescriptor().scopes
 
   subscribeToWindowFocus: ->
     # @subscriptions.push app.on 'browser-window-blur',
@@ -100,4 +102,12 @@ class Voicecode
   currentEditor: ->
     _.find @editors, {focused: true}
 
+  startMaintenance: ->
+    setInterval ( =>
+      @editors = _.reduce @editors, (editors, editor, id) ->
+        if editor.alive
+          editors[id] = editor
+        editors
+      , {}
+      ), 120000
 module.exports = window.voicecode = new Voicecode
