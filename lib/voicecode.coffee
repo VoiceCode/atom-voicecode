@@ -7,11 +7,11 @@ app = remote.require 'app'
 _ = require 'lodash'
 {$} = require 'atom-space-pen-views'
 
-
 class Voicecode
   constructor: ->
     @subscriptions = []
-    @editors = {} # TODO: cleanup dead editors
+    @editors = {}
+    @startMaintenance()
     @myWindowId = remote.getCurrentWindow().id
     @subscribeToWindowFocus()
     @remote = new rpc
@@ -46,8 +46,8 @@ class Voicecode
       true
 
   activate: (state) ->
-    @remote.on 'connect', ->
-      document.querySelector('atom-text-editor.is-focused').dispatchEvent new Event 'focus'
+    @remote.on 'connect', (socket) ->
+      document.querySelector('atom-text-editor.is-focused')?.dispatchEvent new Event 'focus'
     @remote.initialize()
 
   updateEditorState: (editor) ->
@@ -59,6 +59,7 @@ class Voicecode
         id: editor.id
         focused: (editor.focused and remote.getCurrentWindow().isFocused())
         mini: editor.mini
+        scopes: editor.getRootScopeDescriptor().scopes
 
   subscribeToWindowFocus: ->
     # @subscriptions.push app.on 'browser-window-blur',
@@ -70,7 +71,7 @@ class Voicecode
     @subscriptions.push app.on 'browser-window-focus',
     (e, window) =>
       if window.id is @myWindowId
-        editor = _.findWhere @editors, {focused: true }
+        editor = _.find @editors, {focused: true }
         if editor?
           @updateEditorState editor
   updateAppState: (state) ->
@@ -99,6 +100,14 @@ class Voicecode
       {detail: err, dismissible: true, icon: 'bug'})
 
   currentEditor: ->
-    _.findWhere @editors, {focused: true}
+    _.find @editors, {focused: true}
 
+  startMaintenance: ->
+    setInterval ( =>
+      @editors = _.reduce @editors, (editors, editor, id) ->
+        if editor.alive
+          editors[id] = editor
+        editors
+      , {}
+      ), 120000
 module.exports = window.voicecode = new Voicecode
