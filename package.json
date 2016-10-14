@@ -1,7 +1,7 @@
 {
   "name": "voicecode",
   "main": "./lib/voicecode",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "VoiceCode.io integration for Atom: control Atom with voice commands / voice control",
   "activationCommands": {
     "atom-workspace": "voicecode:connect"
