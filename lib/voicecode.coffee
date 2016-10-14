@@ -44,11 +44,12 @@ class Voicecode
       element.addEventListener 'blur', element.constructor::blurred
       element.addEventListener 'focus', element.constructor::focused
       true
-
-  activate: (state) ->
     @remote.on 'connect', (socket) ->
       document.querySelector('atom-text-editor.is-focused')?.dispatchEvent new Event 'focus'
     @remote.initialize()
+
+  activate: (state) ->
+
 
   updateEditorState: (editor) ->
     @editors[editor.id] = editor
