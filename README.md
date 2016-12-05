@@ -20,36 +20,7 @@ atom.commands.dispatch(atom.views.getView(atom.workspace), 'voicecode:connect')
 
 If you want to manually connect it rather than have it auto-connect, just click the menu item: `Packages > VoiceCode > Connect`
 
-## Adding your own commands
-
-If you want to add new commands that are not already included in this package, just do the following in your Atom user init file:
-
-```coffeescript
-window.voiceCodeCommands =
-  myCoolCommand: (options) ->
-    # do something here
-    # the 'options' are passed over from VoiceCode
-    console.log "my cool command worked!"
-```
-
-Then, in your VoiceCode user commands, you can call this Atom command as follows:
-
-```coffeescript
-@runAtomCommand "myCoolCommand", someObjectOrValue
-```
-
-And for a more concrete example, it may look like this in VoiceCode:
-
-```coffeescript
-atom.commands
-  "my-command":
-    spoken: "next word"
-    grammarType: "numberCapture"
-    action: (input = 1) ->
-      @runAtomCommand 'selectNextWord', {distance: input}
-```
-
-### Triggering existing Atom commands
+### Triggering Atom commands
 The Atom editor has a ton of built-in commands, and each Atom package adds even more. Any of these commands can be triggered directly from VoiceCode. In VoiceCode simply do:
 
 ```coffeescript
