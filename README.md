@@ -2,7 +2,7 @@
 
 This is an Atom package/plugin that lets VoiceCode http://voicecode.io control Atom http://atom.io
 
-This integration is needed because many VoiceCode voice commands are more sophisticated than simply pressing keys or clicking the mouse. For example, a command that *selects the next curly brace*, or a command that *extends the current selection(s) forward until the next comma*, etc.
+This integration is needed because many VoiceCode voice commands are more sophisticated than simply pressing keys or clicking the mouse. For example, a command that *selects the next curly brace*, or a command that *extends the current selection(s) forward until the next comma*, etc. It also enables synchronous bidirectional communication between VoiceCode and Atom.
 
 ## Setup
 
@@ -41,28 +41,19 @@ Then, in your VoiceCode user commands, you can call this Atom command as follows
 And for a more concrete example, it may look like this in VoiceCode:
 
 ```coffeescript
-"commandName":
-    kind: "action"
-    description: "does something cool, and has an override for Atom IDE"
+atom.commands
+  "my-command":
+    spoken: "next word"
     grammarType: "numberCapture"
-    action: (input) ->
-      switch @currentApplication()
-        when "Sublime Text"
-          @exec "subl --command 'select_next_word'"
-        when "Atom"
-          @runAtomCommand "myCoolCommand",
-            distance: input
-            value: "something"
-        else
-          # do some default action
+    action: (input = 1) ->
+      @runAtomCommand 'selectNextWord', {distance: input}
 ```
 
 ### Triggering existing Atom commands
-
-In VoiceCode simply do:
+The Atom editor has a ton of built-in commands, and each Atom package adds even more. Any of these commands can be triggered directly from VoiceCode. In VoiceCode simply do:
 
 ```coffeescript
-@runAtomCommand "trigger", "tree-view:add-file"
+@runAtomCommand "trigger", {command: "tree-view:add-file"}
 ```
 
 ## Contributing
