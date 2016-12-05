@@ -1,279 +1,114 @@
-net = require("net")
-fs = require("fs")
-socketPath = "/tmp/voicecode-atom.sock"
+ws = require 'ws'
+vm = require 'vm'
+rpc = require 'atomic_rpc'
+{TextEditor} = require 'atom'
+remote = require('remote')
+app = remote.require 'app'
+_ = require 'lodash'
+{$} = require 'atom-space-pen-views'
 
-{Point} = require 'atom'
-{View, TextEditorView} = require 'atom-space-pen-views'
-$ = require 'jquery'
+class Voicecode
+  constructor: ->
+    @subscriptions = []
+    @editors = {}
+    @startMaintenance()
+    @myWindowId = remote.getCurrentWindow().id
+    @subscribeToWindowFocus()
+    @remote = new rpc
+      host: 'localhost'
+      port: 7777
+      reconnect: true
+    @remote.expose 'injectCode', @injectCode.bind @
 
-Transformer = require './transformer'
+    element = document.createElement 'atom-text-editor'
+    originalFocused = element.constructor::focused
+    originalBlurred = element.constructor::blurred
+    __this = @
+    handler = (focusEvent, original, focus) ->
+      @model.focused = focus
+      __this.updateEditorState @model
+      original.apply @, focusEvent
+    ourBlurred = (focusEvent) ->
+      handler.call @, focusEvent, originalBlurred, false
+    ourFocused = (focusEvent) ->
+      handler.call @, focusEvent, originalFocused, true
+    element.constructor::blurred = ourBlurred
+    element.constructor::focused = ourFocused
 
-Voicecode =
-  subscriptions: null
+    # bind our proxied blur/focus event to existing editors
+    editors = atom.workspace.getTextEditors()
+    _.every editors, (editor) ->
+      element = atom.views.getView editor
+      element.removeEventListener 'blur', originalBlurred
+      element.removeEventListener 'focused', originalFocused
+      element.addEventListener 'blur', element.constructor::blurred
+      element.addEventListener 'focus', element.constructor::focused
+      true
+    @remote.on 'connect', (socket) ->
+      document.querySelector('atom-text-editor.is-focused')?.dispatchEvent new Event 'focus'
+    @remote.initialize()
 
   activate: (state) ->
-    atom.commands.add 'atom-workspace', 'voicecode:connect': => @connect()
-    atom.commands.add 'atom-workspace', 'voicecode:select-next-word': => @selectNextWord()
 
-    @connect()
-    window.addEventListener('focus', @connect.bind(@), true)
+
+  updateEditorState: (editor) ->
+    @editors[editor.id] = editor
+    @updateAppState
+      # name: 'Atom'
+      # bundleId: 'com.github.atom'
+      editor:
+        id: editor.id
+        focused: (editor.focused and remote.getCurrentWindow().isFocused())
+        mini: editor.mini
+        scopes: editor.getRootScopeDescriptor().scopes
+
+  subscribeToWindowFocus: ->
+    # @subscriptions.push app.on 'browser-window-blur',
+    # (e, window) =>
+    #   console.log e
+    #   @updateAppState
+    #     window:
+    #       focused: false
+    @subscriptions.push app.on 'browser-window-focus',
+    (e, window) =>
+      if window.id is @myWindowId
+        editor = _.find @editors, {focused: true }
+        if editor?
+          @updateEditorState editor
+  updateAppState: (state) ->
+    @remote.call
+      method: 'updateAppState'
+      params: state
 
   deactivate: ->
+    _.all @subscriptions, (subscription) ->
+      subscription.dispose()
+
   serialize: ->
 
-  connect: ->
-    console.log "connecting to voicecode"
-    fs.stat socketPath, (err) =>
-      if !err
-        fs.unlinkSync socketPath
+  injectCode: ({code}, callback) ->
+    injectedMethods = @evaluate code
+    _.every injectedMethods, (funk, name) =>
+      @remote.expose name, funk, injectedMethods
 
-      try
-        unixServer = net.createServer (localSerialConnection) =>
-          localSerialConnection.on 'data', (data) =>
-            @commandRecieved(data)
-        unixServer.listen socketPath
-      catch error
-        console.log error
+  evaluate: (code) ->
+    sandbox = vm.createContext _.extend {}, global, {_, CustomEvent, $}
+    try
+      vm.runInContext code, sandbox
+    catch err
+      console.error err
+      atom.notifications.addError('VoiceCode: Remote Commands Failed',
+      {detail: err, dismissible: true, icon: 'bug'})
 
-  trigger: (command) ->
-    atom.views.getView(atom.workspace).dispatchEvent(new CustomEvent(command, {bubbles: true, cancelable: true}))
+  currentEditor: ->
+    _.find @editors, {focused: true}
 
-  commandRecieved: (data) ->
-    body = data.toString('utf8')
-    console.log body: body
-    parsed = JSON.parse body
-    command = parsed.command
-    options = parsed.options
-    console.log
-      method: "commandRecieved"
-      body: body
-      parsed: parsed
-      command: command
-      options: options
-    if @[command]?
-      @[command](options)
-    else if window.voiceCodeCommands?[command]
-      window.voiceCodeCommands?[command](options)
-    else
-      atom.notifications.addError("the command: '#{command}' was not found. Try updating the Atom voicecode package.")
-  _editor: ->
-    atom.workspace.getActiveTextEditor()
-  _afterRange: (selection, editor) ->
-    [selection.getBufferRange().end, editor.getEofBufferPosition()]
-  _beforeRange: (selection) ->
-    [0, selection.getBufferRange().start]
-  _pointAfter: (pt) ->
-    new Point(pt.row, pt.column + 1)
-  _pointBefore: (pt) ->
-    new Point(pt.row, pt.column - 1)
-  _searchEscape: (expression) ->
-    expression.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&")
-
-  goToLine: (line) ->
-    position = new Point(line - 1, 0)
-    editor = @_editor()
-    editor.scrollToBufferPosition(position)
-    editor.setCursorBufferPosition(position)
-    editor.moveToFirstCharacterOfLine()
-
-  selectLineRange: (options) ->
-    from = new Point(options.from - 1, 0)
-    to = new Point(options.to, 0)
-    editor = @_editor()
-    return unless editor
-    editor.setSelectedBufferRange([from, to])
-
-  extendSelectionToLine: (line) ->
-    line = line - 1
-    editor = @_editor()
-    return unless editor
-    current = editor.getSelections()[0].getBufferRange()
-    range = if line < current.start.row
-      [new Point(line, 0), current.end]
-    else if line > current.end.row
-      [current.start, new Point(line + 1, 0)]
-    else if line is current.start.row or line is current.end.row
-      # nothing
-    else
-      topHeight = line - current.start.row
-      bottomHeight = current.end.row - line
-      if topHeight > bottomHeight
-        [new Point(line, 0), current.end]
-      else
-        [current.start, new Point(line + 1, 0)]
-    if range?
-      editor.setSelectedBufferRange(range)
-
-  selectNextWord: (distance) ->
-    editor = @_editor()
-    return unless editor
-    for selection in editor.getSelections()
-      index = 0
-      found = null
-      range = @_afterRange(selection, editor)
-      editor.scanInBufferRange /[\w]+/g, range, (result) ->
-        if result.match
-          found = result
-          if index++ is (distance - 1)
-            result.stop()
-      if found?
-        selection.setBufferRange([found.range.start, found.range.end])
-    editor.mergeCursors() # undocumented
-
-  selectPreviousWord: (distance) ->
-    editor = @_editor()
-    return unless editor
-    for selection in editor.getSelections()
-      index = 0
-      found = null
-      range = @_beforeRange(selection)
-      editor.backwardsScanInBufferRange /[\w]+/g, range, (result) ->
-        if result.match
-          found = result
-          if index++ is (distance - 1)
-            result.stop()
-      if found?
-        selection.setBufferRange([found.range.start, found.range.end])
-    editor.mergeCursors() # undocumented
-
-  ###
-  options.value => search term
-  options.distance => preferred match index
-  ###
-  selectNextOccurrence: (options) ->
-    editor = @_editor()
-    return unless editor
-    found = null
-    if options.value is null
-      options.value = editor.selections[0].getText()
-      return if options.value is ''
-    for selection in editor.getSelections()
-      index = 0
-      range = @_afterRange(selection, editor)
-      editor.scanInBufferRange new RegExp(@_searchEscape(options.value), "ig"), range, (result) ->
-        if result.match
-          found = result
-          if index++ is (options.distance - 1)
-            result.stop()
-      if found?
-        selection.setBufferRange([found.range.start, found.range.end])
-    editor.mergeCursors() # undocumented
-
-  ###
-  options.value => search term
-  options.distance => preferred match index
-  ###
-  selectPreviousOccurrence: (options) ->
-    editor = @_editor()
-    return unless editor
-    found = null
-    if options.value is null
-      options.value = editor.selections[0].getText()
-      return if options.value is ''
-    for selection in editor.getSelections()
-      index = 0
-      range = @_beforeRange(selection)
-      editor.backwardsScanInBufferRange new RegExp(@_searchEscape(options.value), "ig"), range, (result) ->
-        if result.match
-          found = result
-          if index++ is (options.distance - 1)
-            result.stop()
-      if found?
-        selection.setBufferRange([found.range.start, found.range.end])
-    editor.mergeCursors() # undocumented
-
-  ###
-  options.value => search term
-  options.distance => preferred match index
-  ###
-  selectToNextOccurrence: (options) ->
-    editor = @_editor()
-    return unless editor
-    for selection, index in editor.getSelections()
-      found = null
-      index = 0
-      range = @_afterRange(selection, editor)
-      editor.scanInBufferRange new RegExp(@_searchEscape(options.value), "ig"), range, (result) ->
-        console.log result: result
-        if result.match
-          found = result
-          if index++ is (options.distance - 1)
-            result.stop()
-      if found?
-        selection.setBufferRange([selection.getBufferRange().start, found.range.end])
-
-  ###
-  options.value => search term
-  options.distance => preferred match index
-  ###
-  selectToPreviousOccurrence: (options) ->
-    editor = @_editor()
-    return unless editor
-    for selection in editor.getSelections()
-      found = null
-      index = 0
-      range = @_beforeRange(selection, editor)
-      editor.backwardsScanInBufferRange new RegExp(@_searchEscape(options.value), "ig"), range, (result) ->
-        if result.match
-          found = result
-          if index++ is (options.distance - 1)
-            result.stop()
-      if found?
-        selection.setBufferRange([found.range.start, selection.getBufferRange().end])
-
-  selectSurroundedOccurrence: (options) ->
-    expression = options.expression
-    return unless expression.length
-    direction = options.direction
-    distance = (options.distance or 1) - 1
-
-    first = expression[0]
-    last = expression[expression.length - 1]
-    find = new RegExp("(^|\\W)#{first}[\\w]+#{last}($|\\W)", "ig")
-    editor = @_editor()
-    return unless editor
-    console.log
-      first: first
-      last: last
-      find: find
-
-    for selection in editor.getSelections()
-      found = null
-      index = 0
-      if direction is 1
-        range = @_afterRange(selection, editor)
-        editor.scanInBufferRange find, range, (result) ->
-          if result.match
-            found = result
-            if index++ is (options.distance - 1)
-              result.stop()
-      else
-        range = @_beforeRange(selection)
-        editor.backwardsScanInBufferRange find, range, (result) ->
-          if result.match
-            found = result
-            if index++ is (options.distance - 1)
-              result.stop()
-      if found?
-        selection.setBufferRange([@_pointAfter(found.range.start), @_pointBefore(found.range.end)])
-
-  # case transforms
-
-  transformSelectedText: (transform) ->
-    transformer = new Transformer()
-    editor = @_editor()
-    return unless editor
-    editor.mutateSelectedText (selection) ->
-      text = selection.getText()
-      transformed = transformer[transform](text)
-      selection.delete()
-      selection.insertText(transformed)
-
-  insertContentFromLine: (line) ->
-    editor = @_editor()
-    return unless editor
-    return unless line
-    content = editor.getBuffer().lines[line - 1]?.trim()
-    editor.insertText(content)
-
-module.exports = Voicecode
+  startMaintenance: ->
+    setInterval ( =>
+      @editors = _.reduce @editors, (editors, editor, id) ->
+        if editor.alive
+          editors[id] = editor
+        editors
+      , {}
+      ), 120000
+module.exports = window.voicecode = new Voicecode

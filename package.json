@@ -1,7 +1,7 @@
 {
   "name": "voicecode",
   "main": "./lib/voicecode",
-  "version": "0.14.0",
+  "version": "2.0.2",
   "description": "VoiceCode.io integration for Atom: control Atom with voice commands / voice control",
   "activationCommands": {
     "atom-workspace": "voicecode:connect"
@@ -12,7 +12,9 @@
     "atom": ">=0.174.0 <2.0.0"
   },
   "dependencies": {
-    "atom-space-pen-views": "^2.0.3",
-    "jquery": "^2"
+    "atom-space-pen-views": "^2.2.0",
+    "lodash": "^4.11.1",
+    "atomic_rpc": "git+https://github.com/dimatter/atomic_rpc.git",
+    "ws": "^0.8.1"
   }
 }
