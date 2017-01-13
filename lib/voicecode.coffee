@@ -27,7 +27,7 @@ class Voicecode
     handler = (focusEvent, original, focus) ->
       @model.focused = focus
       __this.updateEditorState @model
-      original.apply @, focusEvent
+      original.call @, focusEvent
     ourBlurred = (focusEvent) ->
       handler.call @, focusEvent, originalBlurred, false
     ourFocused = (focusEvent) ->
