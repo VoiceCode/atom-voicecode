@@ -3,7 +3,7 @@ vm = require 'vm'
 rpc = require 'atomic_rpc'
 {TextEditor} = require 'atom'
 remote = require('remote')
-app = remote.require 'app'
+app = remote.app
 _ = require 'lodash'
 {$} = require 'atom-space-pen-views'
 
