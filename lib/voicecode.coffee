@@ -5,7 +5,7 @@ rpc = require 'atomic_rpc'
 remote = require('remote')
 app = remote.app
 _ = require 'lodash'
-{$} = require 'atom-space-pen-views'
+AtomSpacePenViews = require 'atom-space-pen-views'
 
 class Voicecode
   constructor: ->
@@ -92,7 +92,7 @@ class Voicecode
       @remote.expose name, funk, injectedMethods
 
   evaluate: (code) ->
-    sandbox = vm.createContext _.extend {}, global, {_, CustomEvent, $}
+    sandbox = vm.createContext _.extend {}, global, {_, CustomEvent, AtomSpacePenViews }
     try
       vm.runInContext code, sandbox
     catch err
