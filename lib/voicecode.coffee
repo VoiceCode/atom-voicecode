@@ -25,8 +25,7 @@ class Voicecode
     originalBlurred = element.constructor::blurred
     __this = @
     handler = (focusEvent, original, focus) ->
-      @model.focused = focus
-      __this.updateEditorState @model
+      __this.updateEditorState @model, focus
       original.call @, focusEvent
     ourBlurred = (focusEvent) ->
       handler.call @, focusEvent, originalBlurred, false
@@ -47,18 +46,21 @@ class Voicecode
     @remote.on 'connect', (socket) ->
       document.querySelector('atom-text-editor.is-focused')?.dispatchEvent new Event 'focus'
     @remote.initialize()
-
+    @remote.expose 'sendCurrentEditor', @sendCurrentEditor, @
   activate: (state) ->
 
 
-  updateEditorState: (editor) ->
+  updateEditorState: (editor, focused) ->
+    # cache in order to not do a DOM look up in @currentEditor
+    editor.focused = focused
     @editors[editor.id] = editor
+
     @updateAppState
       # name: 'Atom'
       # bundleId: 'com.github.atom'
       editor:
         id: editor.id
-        focused: (editor.focused and remote.getCurrentWindow().isFocused())
+        focused: (focused and remote.getCurrentWindow().isFocused())
         mini: editor.mini
         scopes: editor.getRootScopeDescriptor().scopes
 
@@ -69,12 +71,17 @@ class Voicecode
     #   @updateAppState
     #     window:
     #       focused: false
+
+    # this tells remote side which window(socket) is focused(active)
     @subscriptions.push app.on 'browser-window-focus',
     (e, window) =>
       if window.id is @myWindowId
-        editor = _.find @editors, {focused: true }
-        if editor?
-          @updateEditorState editor
+        @updateAppState
+          window:
+            focused: true
+            id: window.id
+        @sendCurrentEditor()
+
   updateAppState: (state) ->
     @remote.call
       method: 'updateAppState'
@@ -100,8 +107,16 @@ class Voicecode
       atom.notifications.addError('VoiceCode: Remote Commands Failed',
       {detail: err, dismissible: true, icon: 'bug'})
 
+  # "manually" determine currently focused editor.
+  sendCurrentEditor: ->
+    if editor = @currentEditor()
+      @updateEditorState editor, true
+
   currentEditor: ->
-    _.find @editors, {focused: true}
+    result = _.find @editors, {focused: true}
+    unless result?
+      result = document.querySelector('atom-text-editor.is-focused')?.model
+    result
 
   startMaintenance: ->
     setInterval ( =>
