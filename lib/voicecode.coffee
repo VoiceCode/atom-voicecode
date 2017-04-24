@@ -3,9 +3,9 @@ vm = require 'vm'
 rpc = require 'atomic_rpc'
 {TextEditor} = require 'atom'
 remote = require('remote')
-app = remote.require 'app'
+app = remote.app
 _ = require 'lodash'
-{$} = require 'atom-space-pen-views'
+AtomSpacePenViews = require 'atom-space-pen-views'
 
 class Voicecode
   constructor: ->
@@ -27,7 +27,7 @@ class Voicecode
     handler = (focusEvent, original, focus) ->
       @model.focused = focus
       __this.updateEditorState @model
-      original.apply @, focusEvent
+      original.call @, focusEvent
     ourBlurred = (focusEvent) ->
       handler.call @, focusEvent, originalBlurred, false
     ourFocused = (focusEvent) ->
@@ -92,7 +92,7 @@ class Voicecode
       @remote.expose name, funk, injectedMethods
 
   evaluate: (code) ->
-    sandbox = vm.createContext _.extend {}, global, {_, CustomEvent, $}
+    sandbox = vm.createContext _.extend {}, global, {_, CustomEvent, AtomSpacePenViews }
     try
       vm.runInContext code, sandbox
     catch err
