@@ -47,9 +47,10 @@ class Voicecode
       document.querySelector('atom-text-editor.is-focused')?.dispatchEvent new Event 'focus'
     @remote.initialize()
     @remote.expose 'sendCurrentEditor', @sendCurrentEditor, @
+
+
   activate: (state) ->
-
-
+    
   updateEditorState: (editor, focused) ->
     # cache in order to not do a DOM look up in @currentEditor
     editor.focused = focused
@@ -96,7 +97,7 @@ class Voicecode
   injectCode: ({code}, callback) ->
     injectedMethods = @evaluate code
     _.every injectedMethods, (funk, name) =>
-      @remote.expose name, funk, injectedMethods
+      @remote.expose name, funk, @remote.exposures
 
   evaluate: (code) ->
     sandbox = vm.createContext _.extend {}, global, {_, CustomEvent, AtomSpacePenViews }
