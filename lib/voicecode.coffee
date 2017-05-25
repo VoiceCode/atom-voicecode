@@ -97,7 +97,7 @@ class Voicecode
   injectCode: ({code}, callback) ->
     injectedMethods = @evaluate code
     _.every injectedMethods, (funk, name) =>
-      @remote.expose name, funk, injectedMethods
+      @remote.expose name, funk, @remote.exposures
 
   evaluate: (code) ->
     sandbox = vm.createContext _.extend {}, global, {_, CustomEvent, AtomSpacePenViews }
